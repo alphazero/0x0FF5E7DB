@@ -46,7 +46,7 @@ public class Server implements Runnable {
 	// ------------------------------------------------------------------------
 	// properties
 	// ------------------------------------------------------------------------
-	public static final Log.Logger log = Global.logger;
+	public static final Log.Logger log = Specification.logger;
 
 	private final Context context;
 	private NetworkInterface netcomp;
@@ -58,9 +58,21 @@ public class Server implements Runnable {
 		Assert.notNull(context, "context", IllegalArgumentException.class);
 		this.context = new Server.Context.Tree(context);
 		
-		// TODO: confirm configuration settings, etc.
+		configure();
 	}
-	
+	private Server.Fault configure() {
+		try {
+			String levelstr = context.getProperty(Property.LOG_LEVEL);
+			Log.setLogLevel(log, levelstr);
+		} catch (Exception e) {
+			String err = "configure log level error";
+			log.error(err, e);
+			return new Server.Fault(this, e, err);
+		}
+		
+		return  null;
+	}
+
 	/**
 	 * Server general architecture:
 	 * 
@@ -252,6 +264,7 @@ public class Server implements Runnable {
 	
 	/** Server configuration properties and their default values. */
 	public enum Property {
+		LOG_LEVEL ("FINE"),
 		DB_SERVER_PORT ("7727"), 
 		DB_IMAGE_ROOT ("db/image"),
 		DB_CACHE_BLOCK_SIZE ("4096");

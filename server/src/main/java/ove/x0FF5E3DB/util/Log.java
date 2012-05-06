@@ -27,7 +27,10 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 
 /**
- * A perfect excuse to not work on the real code .. but it works ;)
+ * REVU: Intent here is to have clean log out and zero dependencies.  Per
+ * review, only value added (outside of formatter/handler) is exception
+ * related.  
+ * TODO: mirror standard API method names to allow for future revert to stdlib. 
  */
 public class Log {
 	
@@ -48,6 +51,8 @@ public class Log {
 		lname = String.format("%8s", name).substring(0, 8);
 		java.util.logging.Logger stdlog = java.util.logging.Logger.getLogger(lname);
 		stdlog.setUseParentHandlers(false);
+		// REVU: this is buggy 
+		// TODO: should only happen once per named logger
 		final Handler handler = new Log.Handler();
 		final Formatter formatter = new Log.Formatter();
 		handler.trySetFormatter(formatter);
@@ -200,35 +205,36 @@ public class Log {
 			return String.format("%014d %s [%s][tid:%d] %-7s - %s%s", time, d, logger, tid, level.getLocalizedName(), _msg, LINESEP);
 		}
 	}
-	
-	// ------------------------------------------------------------------------
-	/* -- ADHOC TEST - REMOVE AT WILL */
-	// ------------------------------------------------------------------------
-	public static void main(String[] args) {
-		final Logger logger = Log.getLogger("testlog");
-		logger.info("This is getting better");
-		logger.error("oops");
-		try {
-			Log.getLogger(null);
-		} catch (Exception e) {
-			logger.warning("oops", e);
-		}
-		try {
-			Log.getLogger("");
-		} catch (Exception e) { 
-			logger.error("oops", e);
-		}
-		logger.warning("%s %s %s %s %s", "you", "are", "taking", "too", "loong");
-		
-		Throwable tnomsg = new Exception();
-		logger.warning("oops", tnomsg);
-		final Logger logger2 = Log.getLogger("testlog2");
 
-		logger2.error("oops", tnomsg);
+	/**
+	 * @param log
+	 * @param levelstr
+	 */
+	public static void setLogLevel(Logger log, final String levelname) throws IllegalArgumentException{
+		if(levelname == null) throw new IllegalArgumentException("levelname is null");
+		if(levelname.isEmpty()) throw new IllegalArgumentException("levelname is blank");
+		Level level = null;
+		if(levelname.equalsIgnoreCase(Level.ALL.getName()))
+			level = Level.ALL;
+		else if(levelname.equalsIgnoreCase(Level.CONFIG.getName()))
+			level = Level.CONFIG;
+		else if(levelname.equalsIgnoreCase(Level.INFO.getName()))
+			level = Level.INFO;
+		else if(levelname.equalsIgnoreCase(Level.OFF.getName()))
+			level = Level.OFF;
+		else if(levelname.equalsIgnoreCase(Level.SEVERE.getName()))
+			level = Level.SEVERE;
+		else if(levelname.equalsIgnoreCase(Level.WARNING.getName()))
+			level = Level.WARNING;
+		else if(levelname.equalsIgnoreCase(Level.FINE.getName()))
+			level = Level.FINE;
+		else if(levelname.equalsIgnoreCase(Level.FINER.getName()))
+			level = Level.FINER;
+		else if(levelname.equalsIgnoreCase(Level.FINEST.getName()))
+			level = Level.FINEST;
+		else
+			throw new IllegalArgumentException("Log#setLogLevel: unrecognized log level: " + levelname);
 		
-		logger2.setLevel(Level.ALL);
-		logger2.trace(Level.FINEST, "how fine it is");
-		
+		log.setLevel(level);
 	}
-	/* -- ADHOC TEST - REMOVE AT WILL */
 }

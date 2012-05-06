@@ -35,7 +35,7 @@ import ove.x0FF5E3DB.util.Log;
  * @author alphazero
  */
 public class Main {
-	public static final Log.Logger log = Global.logger;
+	public static final Log.Logger log = Specification.logger;
 	
 	@SuppressWarnings("serial")
 	static final class UsageException extends Exception {

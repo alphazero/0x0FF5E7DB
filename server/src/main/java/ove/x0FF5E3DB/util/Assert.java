@@ -25,16 +25,20 @@ package ove.x0FF5E3DB.util;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Formatter;
 
-import ove.x0FF5E3DB.Global;
+import ove.x0FF5E3DB.Specification;
 
 
 /**
- *
- * @author  Joubin Houshyar (alphazero@sensesay.net)
+ * REVU: this provides richer semantics than simply using <code>assert</code>
+ * but performance implications demand a reconsideration.
+ * <b>
+ * TODO: Bench it and make a final decision
+ * 
+ * @author  Joubin (alphazero@sensesay.net)
  */
 public class Assert {
 
-	public static final Log.Logger log = Global.logger;
+	public static final Log.Logger log = Specification.logger;
 
 	public static final Class<? extends RuntimeException> DefaultAEC = IllegalArgumentException.class;
 

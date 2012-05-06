@@ -45,7 +45,7 @@ class NetworkInterface extends Server.Component.Base<NetworkInterface> implement
 	// ------------------------------------------------------------------------
 	// properties
 	// ------------------------------------------------------------------------
-	public static final Log.Logger log = Global.logger;
+	public static final Log.Logger log = Specification.logger;
 	private final Context context;
 	private int ssport;
 	private InetSocketAddress inetadd;

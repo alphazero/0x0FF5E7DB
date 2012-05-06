@@ -23,11 +23,20 @@
 package ove.x0FF5E3DB;
 
 import java.util.logging.Level;
-
 import ove.x0FF5E3DB.util.Log;
 
+public interface Specification {
+	public static final class Version {
+		static final long major = 0x0A00000000000000L;   
+		static final long minor = 0x0000000000000000L;
+		static final long patch = 0x00000000050507DCL; // patch date e.g. 05|05|2012
+		static final long release() {
+			return Version.major | Version.minor | Version.patch;
+		}
+		static final long serialVersionUID() {
+			return Version.major | Version.minor;
+		}
+	}
 
-public interface Global {
-	// TODO: grab these from conf
 	public static final Log.Logger logger = Log.getLogger("0FF5E3DB", true).setLevel(Level.FINEST);
 }
