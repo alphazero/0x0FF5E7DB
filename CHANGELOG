@@ -1,0 +1,15 @@
+
+alpha.0--05-05-2012
+
+	* 0x0FF5E3DB project started
+	* license is GNU V 3.0
+	* package structure is ove.x0FF5E3DB...
+	* package ove.x0FF5E3DB.util added
+	* package ove.x0FF5E3DB added
+	* initial implementation of server process
+		* configuration 
+		* coa server
+		* server component model
+		* server NetworkInterface component (wip)
+
+
