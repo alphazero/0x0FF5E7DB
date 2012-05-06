@@ -1,0 +1,107 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"> <modelVersion>4.0.0</modelVersion> 
+
+	<name>0X0FF5E3DB-Project</name> 
+
+	<groupId>0X0FF5E3DB</groupId> 
+	<artifactId>0X0FF5E3DB-project</artifactId> 
+	<version>alpha.0-SNAPSHOT</version> 
+	<packaging>pom</packaging> 
+
+	<url>http://github.com/alphazero/0x0FF5E3DB</url>
+	<description>0X0FF5E3DB Project POM.</description> 
+    
+	<!-- ============================================================= -->
+	<!-- INFORMATION                                                   -->
+	<!-- ============================================================= -->
+
+	<inceptionYear>2012</inceptionYear>
+
+	<organization>
+		<name>alphazero</name>
+		<url>http://github.com/alphazero</url>
+	</organization>
+
+	<licenses>
+		<license>
+			<name>GNU GENERAL PUBLIC LICENSE</name>
+			<url>http://www.gnu.org/licenses/gpl.txt</url>
+			<distribution>all</distribution>
+			<comments>A Freedom Friendly F-OSS license</comments>
+		</license>
+	</licenses> 
+
+	<developers>
+		<developer>
+			<id>joubin</id>
+			<name>Joubin Houshyar</name>
+			<email>alphazero@sensesay.net</email>
+			<url>http://github.com/alphazero</url>
+			<roles>
+				<role>architect</role>
+				<role>engineer</role>
+			</roles>
+			<timezone>UTC-5</timezone>
+		</developer>
+	</developers>
+
+	<!-- ============================================================= -->
+	<!-- STRUCTURE                                                     -->
+	<!-- ============================================================= -->
+
+	<modules>
+		<!-- x0FF5E3DB-server -->
+		<module>server</module>
+	</modules>
+	<!-- ============================================================= -->
+	<!-- CODE                                                          -->
+	<!-- ============================================================= -->
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+	</properties>
+
+	<dependencies>
+		<!-- == TESTING == -->
+		<dependency>
+			<groupId>org.testng</groupId>
+			<artifactId>testng</artifactId>
+			<version>6.3.1</version>
+			<scope>test</scope>
+		</dependency>
+	</dependencies>
+	
+	<build> 
+		<plugins> 
+			<!-- == COMPILE == -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>2.4</version>
+				<configuration>
+					<source>1.6</source>
+					<target>1.6</target>
+					<encoding>${project.build.sourceEncoding}</encoding>
+				</configuration>
+			</plugin>
+			<!-- == TEST == -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.12</version>
+				<configuration>
+					<systemProperties>
+						<property>
+							<name>placeholder.const</name>
+							<value>333</value>
+						</property>
+					</systemProperties>
+				</configuration>
+			</plugin>
+
+			<!-- == COMPILER == -->
+			<!-- == COMPILER == -->
+			<!-- == COMPILER == -->
+			<!-- == COMPILER == -->
+		</plugins> 
+	</build> 
+</project>
