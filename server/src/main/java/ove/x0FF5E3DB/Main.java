@@ -30,26 +30,46 @@ import ove.x0FF5E3DB.Server.Configuration;
 import ove.x0FF5E3DB.util.Assert;
 import ove.x0FF5E3DB.util.Log;
 
-
 /**
  * @author alphazero
  */
 public class Main {
-	public static final Log.Logger log = Specification.logger;
-	
-	@SuppressWarnings("serial")
-	static final class UsageException extends Exception {
-	}
-	
+	// ------------------------------------------------------------------------
+	// properties
+	// ------------------------------------------------------------------------
+	public static final Log.Logger log = Log.getLogger("cll-main").setLevel(Level.ALL);
 	public static final String DEFAULT_CONF_PATH = "./server.conf";
+	
+	// ------------------------------------------------------------------------
+	// inner types
+	// ------------------------------------------------------------------------
+	@SuppressWarnings("serial")
+	static final class UsageException extends Exception {}
+	
 	private final static void exit(int status, String info) {
 		log.info("%s - exit(%d)", info, status);
 		System.exit(status);
 	}
+	enum Option {
+		conf (true, "conf", "server configuration file", "path");
+		final String flag;
+		final String desc;
+		final boolean optional;
+		final String form;
+		Option(boolean optional, String flag, String desc, String form){
+			this.flag = flag;
+			this.desc = desc;
+			this.form = form;
+			this.optional = optional;
+		}
+	}
+	// ------------------------------------------------------------------------
+	// 
+	// ------------------------------------------------------------------------
 	public static final void main(String[] args) {
 
 		// parse args
-		Map<String, String> clargs = null;
+		Map<Option, String> clargs = null;
 		try {
 			clargs = parseArgs(args);
 		} catch (UsageException e) {
@@ -57,12 +77,13 @@ public class Main {
 			exit(-1, "startup failed - parse args");
 		}
 		
-		
 		// configuration 
 		Server.Configuration conf = null;
 		try {
 			String cfname = null;
-			if((cfname = clargs.get("-conf")) == null) { cfname = DEFAULT_CONF_PATH; }
+			if((cfname = clargs.get(Option.conf)) == null) { 
+				cfname = DEFAULT_CONF_PATH; // REVU: should be in jar 
+			}
 			conf = Server.Configuration.Load(cfname);
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -113,6 +134,9 @@ public class Main {
 		}
 		
 	}
+	// ------------------------------------------------------------------------
+	// inner ops
+	// ------------------------------------------------------------------------
 	private static final boolean handleFault() {
 		return false;
 	}
@@ -160,8 +184,9 @@ public class Main {
 	 * @return
 	 * @throws UsageException 
 	 */
-	private static Map<String, String> parseArgs(String[] args) throws UsageException {
-		Map<String, String> clargs = new HashMap<String, String>();
+	private static Map<Option, String> parseArgs(String[] args) throws UsageException {
+		log.trace(Level.FINEST, "args.length:%d", args.length);
+		Map<Option, String> clargs = new HashMap<Option, String>();
 		for (int i=0; i< args.length; i++){
 			String arg = args[i];
 			if(arg.startsWith("--")){
@@ -178,13 +203,15 @@ public class Main {
 		return clargs;
 	}
 	
-	private static void parseArg(Map<String, String> clargs, String arg, String argv) throws IllegalStateException {
+	private static void parseArg(Map<Option, String> clargs, String arg, String argv) throws IllegalStateException {
 		Class<? extends RuntimeException> eclass = IllegalStateException.class;
-		Assert.notNull(clargs, "clargs", eclass);
 		Assert.isTrue(arg.charAt(0)=='-', "option flag must begin with '-'", eclass);
 		Assert.isTrue(arg.length() > 1, "option flag must be at least 2 chars", eclass);
 		Assert.notNull(argv, "option value", eclass);
 		Assert.isTrue(!argv.isEmpty(), "option value must not be empty", eclass);
-		clargs.put(arg.substring(1), argv);
+		
+		final Option opt = Option.valueOf(arg.substring(1));
+		clargs.put(opt, argv);
+		log.trace(Level.FINEST, "arg %s => %s", arg, argv);
 	}
 }
