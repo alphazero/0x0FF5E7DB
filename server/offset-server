@@ -1,0 +1,3 @@
+#1/bin/csh
+
+java -cp target/classes ove.x0FF5E7DB.Main ${1} ${2}
