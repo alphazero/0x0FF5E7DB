@@ -279,7 +279,7 @@ public class Assert {
 				simpleClassName, src.getMethodName(), src.getFileName(), src.getLineNumber(), packageName).toString();
 
 		// Log it
-		log.error(info);
+		log.severe(info);
 		
 		// 3- throw the exception
 		//

@@ -30,7 +30,7 @@ import java.util.logging.LogRecord;
  * REVU: Intent here is to have clean log out and zero dependencies.  Per
  * review, only value added (outside of formatter/handler) is exception
  * related.  
- * TODO: mirror standard API method names to allow for future revert to stdlib. 
+ * TODO: reduce to necessary essentials. 
  */
 public class Log {
 	
@@ -69,7 +69,7 @@ public class Log {
 			this.stdlog = stdlog;
 			this.dumpstack = dumpstack;
 		}
-		final public void error (String msg){
+		final public void severe (String msg){
 			stdlog.severe(msg);
 		}
 		final public void error (String fmt, Object...args){
@@ -129,17 +129,16 @@ public class Log {
 			stdlog.setLevel(level);
 			return this;
 		}
-		final public void trace(Level level, String msg){
+		final public void log(Level level, String msg){
 			stdlog.log(level, msg);
 		}
-		final public void trace(Level level, String fmt, Object...args){
+		final public void log(Level level, String fmt, Object...args){
 			stdlog.log(level, fmt, args);
 		}
-		final public void trace(Level level, String msg, Throwable t){
+		final public void log(Level level, String msg, Throwable t){
 			stdlog.log(level, msg, t);
 		}
 	}
-//	public enum Category { INFO, DEBUG, ERROR, PROBLEM, BUG }
 	
 	// ------------------------------------------------------------------------
 	// Log.Handler
@@ -210,30 +209,15 @@ public class Log {
 	 * @param log
 	 * @param levelstr
 	 */
-	public static void setLogLevel(Logger log, final String levelname) throws IllegalArgumentException{
+	public static void setLoggerLevel(Logger log, final String levelname) throws IllegalArgumentException{
 		if(levelname == null) throw new IllegalArgumentException("levelname is null");
 		if(levelname.isEmpty()) throw new IllegalArgumentException("levelname is blank");
 		Level level = null;
-		if(levelname.equalsIgnoreCase(Level.ALL.getName()))
-			level = Level.ALL;
-		else if(levelname.equalsIgnoreCase(Level.CONFIG.getName()))
-			level = Level.CONFIG;
-		else if(levelname.equalsIgnoreCase(Level.INFO.getName()))
-			level = Level.INFO;
-		else if(levelname.equalsIgnoreCase(Level.OFF.getName()))
-			level = Level.OFF;
-		else if(levelname.equalsIgnoreCase(Level.SEVERE.getName()))
-			level = Level.SEVERE;
-		else if(levelname.equalsIgnoreCase(Level.WARNING.getName()))
-			level = Level.WARNING;
-		else if(levelname.equalsIgnoreCase(Level.FINE.getName()))
-			level = Level.FINE;
-		else if(levelname.equalsIgnoreCase(Level.FINER.getName()))
-			level = Level.FINER;
-		else if(levelname.equalsIgnoreCase(Level.FINEST.getName()))
-			level = Level.FINEST;
-		else
-			throw new IllegalArgumentException("Log#setLogLevel: unrecognized log level: " + levelname);
+		try {
+			level = Level.parse(levelname.toUpperCase());
+		} catch (Throwable e) {
+			throw new IllegalArgumentException("Log#setLogLevel: unrecognized log level: " + levelname, e);
+		}
 		
 		log.setLevel(level);
 	}

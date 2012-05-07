@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 
-import ove.x0ff5e7db.Server.Configuration;
 import ove.x0ff5e7db.util.Assert;
 import ove.x0ff5e7db.util.Log;
 
@@ -90,7 +89,6 @@ public class Main {
 			exit(-2, "startup failed - configuration file load");
 		}
 
-		temptest(conf);
 		// executive context
 		final Server.Fault[] fault = new Server.Fault [1];
 		Server.Context context = newServerContext(Thread.currentThread(), conf, fault);
@@ -118,17 +116,17 @@ public class Main {
 					// interrupted!
 				}
 			} catch (InterruptedException e) {	// via context onError()
-				log.trace(Level.FINE, "interrupted - e:%s", e);
+				log.log(Level.FINE, "interrupted - e:%s", e);
 				e.printStackTrace();
 				if(fault[0] != null) {
-					log.trace(Level.FINEST, "server faulted -- try handling it ...");
+					log.log(Level.FINEST, "server faulted -- try handling it ...");
 					if(!handleFault()){
 						log.error("unrecoverable server fault -- will exit.", fault[0]);
 						exit(-5, fault[0].info);
 					}
-					log.trace(Level.FINEST, ".. handled -- will continue");
+					log.log(Level.FINEST, ".. handled -- will continue");
 				} else {
-					log.trace(Level.FINEST, "spurious interrupt -- will continue");
+					log.log(Level.FINEST, "spurious interrupt -- will continue");
 				}
 			}
 		}
@@ -166,15 +164,7 @@ public class Main {
 			}
 		};
 	}
-	
-	/**
-	 * @param conf
-	 */
-	private static void temptest(Configuration conf) {
-		for (Server.Property p : Server.Property.values()){
-			log.trace(Level.FINEST, conf.get(p) + " check");
-		}
-	}
+
 	private static void usage() {
 		throw new RuntimeException("NOT IMPLEMENTED");
 	}
@@ -185,7 +175,7 @@ public class Main {
 	 * @throws UsageException 
 	 */
 	private static Map<Option, String> parseArgs(String[] args) throws UsageException {
-		log.trace(Level.FINEST, "args.length:%d", args.length);
+		log.log(Level.FINEST, "args.length:%d", args.length);
 		Map<Option, String> clargs = new HashMap<Option, String>();
 		for (int i=0; i< args.length; i++){
 			String arg = args[i];
@@ -196,7 +186,7 @@ public class Main {
 				parseArg(clargs, arg, argv);
 				i++;
 			} else {
-				log.error(arg);
+				log.severe(arg);
 				throw new UsageException();
 			}
 		}
@@ -212,6 +202,6 @@ public class Main {
 		
 		final Option opt = Option.valueOf(arg.substring(1));
 		clargs.put(opt, argv);
-		log.trace(Level.FINEST, "arg %s => %s", arg, argv);
+		log.log(Level.FINEST, "arg %s => %s", arg, argv);
 	}
 }

@@ -67,7 +67,7 @@ class NetworkInterface extends Server.Component.Base<NetworkInterface> implement
 			sschan.socket().bind(inetadd);
 			context.bind(CtxBinding.server_socket_chan.id(), sschan);
 			
-			log.trace(Level.FINER, "NET - %s bound to %s", sschan, inetadd);
+			log.log(Level.FINER, "NET - %s bound to %s", sschan, inetadd);
 			
 		} catch (Throwable e) {
 			log.error("sschan initialize failed", e);
@@ -96,19 +96,19 @@ class NetworkInterface extends Server.Component.Base<NetworkInterface> implement
 			acceptHandler.setContext(context);
 			acceptHandler.initialize();
 			context.bind(CtxBinding.accept_handler.id(), acceptHandler);
-			log.trace(Level.FINEST, "NET - handler %s initialized and bound", acceptHandler);
+			log.log(Level.FINEST, "NET - handler %s initialized and bound", acceptHandler);
 			
 			RequestHandler requestHandler = new RequestHandler();
 			requestHandler.setContext(context);
 			requestHandler.initialize();
 			context.bind(CtxBinding.request_handler.id(), requestHandler);
-			log.trace(Level.FINEST, "NET - handler %s initialized and bound", requestHandler);
+			log.log(Level.FINEST, "NET - handler %s initialized and bound", requestHandler);
 			
 			ResponseHandler responseHandler = new ResponseHandler();
 			responseHandler.setContext(context);
 			responseHandler.initialize();
 			context.bind(CtxBinding.response_handler.id(), responseHandler);
-			log.trace(Level.FINEST, "NET - handler %s initialized and bound", responseHandler);
+			log.log(Level.FINEST, "NET - handler %s initialized and bound", responseHandler);
 			
 		} catch (Throwable e) {
 			log.error("handlers init failed", e);
@@ -139,14 +139,14 @@ class NetworkInterface extends Server.Component.Base<NetworkInterface> implement
 		for(;;) {
 			boolean idling = true;
 			for(Selector s : selectors){
-				log.trace(Level.FINEST, "check selector %s", s);
+				log.log(Level.FINER, "check selector %s", s);
 				try {
 					if(s.selectNow() == 0){
 						continue;
 					}
 					Set<SelectionKey> selections = s.selectedKeys();
 					for(SelectionKey k : selections){
-						log.trace(Level.FINER, "selected: %s %s", k, k.attachment());
+						log.log(Level.FINEST, "selected: %s %s", k, k.attachment());
 						Handler hdlr = (Handler) k.attachment();
 						hdlr.handle(k);
 						selections.remove(k);
@@ -160,7 +160,7 @@ class NetworkInterface extends Server.Component.Base<NetworkInterface> implement
 			try {
 				if(idling){
 					Thread.sleep(1000);
-					log.trace(Level.FINEST, "nothing to do ..");
+					log.log(Level.FINER, "nothing to do ..");
 				}
 			} catch (Exception e) {
 				log.error("in idle sleep", e);
@@ -207,13 +207,13 @@ class NetworkInterface extends Server.Component.Base<NetworkInterface> implement
 			chan = context.get(CtxBinding.server_socket_chan.id(), ServerSocketChannel.class);
 			
 			SocketChannel sch = chan.accept();
-			log.trace(Level.FINE, "Accepted connection - %s", sch);
+			log.log(Level.FINE, "Accepted connection - %s", sch);
 			
 			Selector rsel = context.get(CtxBinding.read_selector.id(), Selector.class);
 			RequestHandler reqhdlr = context.get(CtxBinding.request_handler.id(), RequestHandler.class);
 			sch.configureBlocking(false);
 			sch.register(rsel, SelectionKey.OP_READ, reqhdlr);
-			log.trace(Level.FINEST, "%s registered with %s OP_READs to be handled by - %s", sch, rsel, reqhdlr);
+			log.log(Level.FINEST, "%s registered with %s OP_READs to be handled by - %s", sch, rsel, reqhdlr);
 			
 			log.warning("did not register for OP_WRITE -- IMPLEMENT WRITE HANDLER ..");
 		}

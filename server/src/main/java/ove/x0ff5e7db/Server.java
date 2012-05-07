@@ -63,7 +63,7 @@ public class Server implements Runnable {
 	private Server.Fault configure() {
 		try {
 			String levelstr = context.getProperty(Property.LOG_LEVEL);
-			Log.setLogLevel(log, levelstr);
+			Log.setLoggerLevel(log, levelstr);
 		} catch (Exception e) {
 			String err = "configure log level error";
 			log.error(err, e);
@@ -98,7 +98,7 @@ public class Server implements Runnable {
 		
 		final Thread thread = Thread.currentThread();
 		final String id = String.format("{%s:%d}", thread.getName(), thread.getId());
-		log.trace(Level.FINEST, "server thread id is %s - started ...", id);
+		log.log(Level.FINEST, "server thread id is %s - started ...", id);
 
 		// assemble system and initialize 
 		try {
@@ -108,7 +108,7 @@ public class Server implements Runnable {
 				context.onError(fault);
 				return;
 			}
-			log.trace(Level.FINER, "server components assembled and initialized");
+			log.log(Level.FINER, "server components assembled and initialized");
 		} catch (Throwable rte) {
 			log.error("unexpected fault on component intialization", rte);
 			context.onError(new Fault(this, rte, id));
@@ -121,7 +121,7 @@ public class Server implements Runnable {
 		try {
 			ExecutorService netex = Executors.newSingleThreadExecutor();
 			netex.execute(netcomp);
-			log.trace(Level.FINEST, "network interface executor %s started", netex);
+			log.log(Level.FINEST, "network interface executor %s started", netex);
 		} catch (Exception e) {
 			log.error("fault on network interface executor intialization", e);
 			context.onError(new Fault(this, e, id));
@@ -140,7 +140,7 @@ public class Server implements Runnable {
 		try {
 			netcomp.initialize();
 			context.bind(CtxBinding.network_interface.id(), netcomp);
-			log.trace(Level.FINEST, "network interface %s initialized and bound",  netcomp);
+			log.log(Level.FINEST, "network interface %s initialized and bound",  netcomp);
 		} catch (Throwable e) {
 			String err = "failed to initialize netcomp";
 			log.error(err, e);
@@ -297,7 +297,7 @@ public class Server implements Runnable {
 				File fconf = new File(path);
 				if(!fconf.exists()) {
 					String msg = String.format("configuration file <%s> does not exist", fconf.getAbsolutePath());
-					log.error(msg);
+					log.severe(msg);
 					throw new Exception(msg);
 				}
 				BufferedReader r = new BufferedReader(new FileReader(fconf));
