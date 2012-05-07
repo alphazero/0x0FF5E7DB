@@ -31,6 +31,8 @@ public interface Hash {
 	 * @return hash of b
 	 */
 	int hash(byte[] b) ;
+	
+	int bitsize();
 
 	// ------------------------------------------------------------------------
 	// Convenience instances
@@ -43,9 +45,22 @@ public interface Hash {
 	// ------------------------------------------------------------------------
 	// Providers 
 	// ------------------------------------------------------------------------
+	
+	enum Provider {
+		MBInt32 (Hash.MBInt32, ModifiedBernstein.class),
+		MBUint32 (Hash.MBUint32,  ModifiedBernstein.class);
+		final public String id;
+		final public Hash provider;
+		Provider(Hash provider, Class<?> algogroup){
+			this.provider = provider;
+			this.id = String.format("%s.%s", algogroup.getSimpleName(), provider.getClass().getSimpleName());
+		}
+	}
+
 	/** based on the various copies of implementation found on the net. Name is not canonical. */
 	public interface ModifiedBernstein {
 		public static class Int32 implements Hash{
+			@Override public int bitsize() { return 32;}
 			@Override public int hash(byte[] b) {
 				int h = 5381;
 				for(int i=0; i<b.length; i++) {
@@ -55,7 +70,8 @@ public interface Hash {
 			}
 		}
 		/** Masks output of {@link Int32} with {@link Integer#MAX_VALUE} */
-		public static class Uint32 extends Int32{
+		public static final class Uint32 extends Int32{
+			@Override final public int bitsize() { return 31;}
 			@Override final public int hash(byte[] b) {
  				return super.hash(b) & Integer.MAX_VALUE;  
 			}

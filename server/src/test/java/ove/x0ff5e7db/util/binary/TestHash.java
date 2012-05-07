@@ -17,40 +17,71 @@
 
 package ove.x0ff5e7db.util.binary;
 
-import java.util.Random;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
 
-import ove.x0ff5e7db.util.Log;
-import ove.x0ff5e7db.util.Log.Logger;
+import ove.x0ff5e7db.TestBase;
 
 @Test(groups={"server:util", "capability:id"})
-public class TestHash {
+public class TestHash extends TestBase {
 
-	static final Logger logger = Log.getLogger("test-run");
+	// ------------------------------------------------------------------------
+	// properties
+	// ------------------------------------------------------------------------
 	static final int n_bench_cnt = 10000; // TODO: spec in pom
 
-	Random rand = new Random(System.currentTimeMillis());
-	public long comprptu(long iters, long delta, TimeUnit tu_delta, TimeUnit rptu){
-		return rptu.convert((long)comprpcycle(iters, delta), tu_delta);
-	}
-	public long comprpcycle(long iters, long delta){
-		return (long) ((float)delta/iters);
-	}
-	
+
 	// TODO: need a meaningful test for hashes that doesn't take forever
-	public void testHashProvider (Hash provider, String provider_id) {
+
+	// ------------------------------------------------------------------------
+	// test Hash.Providers
+	// ------------------------------------------------------------------------
+	@Test()
+	public void testHashProviders () {
+		for(Hash.Provider p : Hash.Provider.values()){
+			if(p.provider.bitsize() == 32)
+				testHashProvider32bit(p.provider, p.id);
+			else if(p.provider.bitsize() == 31)
+				testHashProvider31bit(p.provider, p.id);
+		}
+	}
+	public void testHashProvider32bit (Hash provider, String provider_id) {
+		doTestHashProvider32bit(provider, provider_id);
+	}
+
+	public void testHashProvider31bit (Hash provider, String provider_id) {
+		final String t_feature = "hash";
+		int h = doTestHashProvider32bit(provider, provider_id);
+		Assert.assertTrue((h | 0x7fffffff) == 0x7fffffff, String.format("hi bit should not set : provider:%s.%s", provider_id, t_feature));
+	}
+	public int doTestHashProvider32bit (Hash provider, String provider_id) {
 		final int s_buff = 4096;
 		final byte[] b = new byte[s_buff];
 		rand.nextBytes(b);
-		int h = provider.hash(b);
-		Assert.assertTrue((h | 0x7fffffff) == 0x7fffffff, String.format("hi bit should not set : provider:%s", provider_id));
+		return provider.hash(b);
 	}
 
+	
+	// ------------------------------------------------------------------------
+	// bench Hash.Providers
+	// ------------------------------------------------------------------------
+	
+	/* 
+	 * REVU: generalize this - extract to bench util - low priority
+	 * TODO: see above.
+	 */
+	
+	@Test()
+	public void testBenchHashProviders () {
+		for(Hash.Provider p : Hash.Provider.values()){
+			testBenchHashProvider(p.provider, p.id);
+		}
+	}
+	
 	public void testBenchHashProvider (Hash provider, String provider_id) {
+		final String t_feature = "hash";
 		final int s_buff = 4096;
 		final byte[] b = new byte[s_buff];
 		
@@ -64,10 +95,17 @@ public class TestHash {
 		final long delta = tn - t0;
 		long rpusec = comprpcycle(n_bench_cnt, delta);
 
-		logger.log(Level.INFO, "delta:%011d nsecs - iters:%09d - opt-lat:%09d nsec : %s( rand( b[%d] ) )", delta, n_bench_cnt, rpusec, provider_id, s_buff);
+		logger.log(Level.INFO, "delta:%011d nsecs - iters:%09d - opt-lat:%09d nsec : %s.%s( rand( b[%d] ) )", delta, n_bench_cnt, rpusec, provider_id, t_feature, s_buff);
 	}
 
+	@Test()
+	public void testBenchHashProvidersOnly () {
+		for(Hash.Provider p : Hash.Provider.values()){
+			testBenchHashProviderOnly(p.provider, p.id);
+		}
+	}
 	public void testBenchHashProviderOnly (Hash provider, String provider_id) {
+		final String t_feature = "hash";
 		final int s_buff = 4096;
 		final byte[] b = new byte[s_buff];
 		rand.nextBytes(b);
@@ -80,41 +118,6 @@ public class TestHash {
 		final long delta = tn - t0;
 		long rpusec = comprpcycle(n_bench_cnt, delta);
 
-		logger.log(Level.INFO, "delta:%011d nsecs - iters:%09d - opt-lat:%09d nsec : %s( b[%d] )", delta, n_bench_cnt, rpusec, provider_id, s_buff);
-	}
-	interface Testing {
-		interface HashFn {
-			enum Provider {
-				MBInt32 (Hash.MBInt32),
-				MBUint32 (Hash.MBUint32);
-				final public String id;
-				final public Hash provider;
-				Provider(Hash provider){
-					this.provider = provider;
-					this.id = String.format("%s.hash", provider.getClass().getSimpleName());
-				}
-			}
-		}
-	}
-	
-	@Test()
-	public void testHashProviders () {
-		for(Testing.HashFn.Provider p : Testing.HashFn.Provider.values()){
-			testHashProvider(p.provider, p.id);
-		}
-	}
-	
-	@Test()
-	public void testBenchHashProviders () {
-		for(Testing.HashFn.Provider p : Testing.HashFn.Provider.values()){
-			testBenchHashProvider(p.provider, p.id);
-		}
-	}
-	
-	@Test()
-	public void testBenchHashProvidersOnly () {
-		for(Testing.HashFn.Provider p : Testing.HashFn.Provider.values()){
-			testBenchHashProviderOnly(p.provider, p.id);
-		}
+		logger.log(Level.INFO, "delta:%011d nsecs - iters:%09d - opt-lat:%09d nsec : %s.%s( b[%d] )", delta, n_bench_cnt, rpusec, provider_id, t_feature, s_buff);
 	}
 }
