@@ -30,7 +30,6 @@ import java.nio.channels.SocketChannel;
 import java.util.Set;
 import java.util.logging.Level;
 
-import ove.x0ff5e7db.Server.Context;
 import ove.x0ff5e7db.util.Assert;
 import ove.x0ff5e7db.util.Log;
 
@@ -41,109 +40,203 @@ import ove.x0ff5e7db.util.Log;
  * 
  * @author alphazero
  */
-class NetworkInterface extends Server.Component.Base<NetworkInterface> implements Runnable{
+class NetworkInterface extends Servant.Component.Base implements Runnable{
 	// ------------------------------------------------------------------------
 	// properties
 	// ------------------------------------------------------------------------
 	public static final Log.Logger log = Specification.logger;
-	private final Context context;
+	private final Servant.Context context;
 	private int ssport;
 	private InetSocketAddress inetadd;
+
+	// ------------------------------------------------------------------------
+	// Context bindings
+	// ------------------------------------------------------------------------
+	enum CtxBinding {
+		server_socket_chan,
+		ssch_accept_handler,
+		ssch_read_handler,
+		ssch_write_handler,
+		ssch_accept_selector, 
+		ssch_read_selector, 
+		ssch_write_selector;
+		private final String id;
+		CtxBinding () {
+			this.id = this.name().toLowerCase().replace('_', '.');
+		}
+		public String id() { return id; }
+	}
+	// REVU: like but error prone ..
+	private ServerSocketChannel sschan = null;
+	private Selector asel = null;
+	private Selector rsel = null;
+	private Selector wsel = null;
+	private SSChanAcceptHandler ahandler = null;
+	private SSChanReadHandler rhandler;
+	private SSChanWriteHandler whandler;
+
 	// ------------------------------------------------------------------------
 	// initialization concerns
 	// ------------------------------------------------------------------------
-	NetworkInterface(Server.Context context) {
-		this.context = new Server.Context.Tree(context);
+	NetworkInterface(final Servant.Context context) {
+		this.context = createComponentContext(context);
 	}
+
+	/** @return the newly created context for this component*/
+	private final Servant.Context createComponentContext(final Servant.Context parent) {
+		return new Servant.Context() {
+			@Override final
+			public String getProperty(Servant.Property prop) { return parent.getProperty(prop); }
+			@Override final
+			public void onError(Servant.Fault fault) { parent.onError(fault); }
+			@Override final
+			public <V> V bind(String k, V v) {
+				Assert.notNull(k, "k", IllegalArgumentException.class);
+				Assert.notNull(v, "v", IllegalArgumentException.class);
+				/* -- socket channels -- */
+				if(k.equals(CtxBinding.server_socket_chan.id) && ServerSocketChannel.class.isAssignableFrom(v.getClass()))
+					sschan = (ServerSocketChannel) v;
+				/* -- selectors -- */
+				else if (k.equals(CtxBinding.ssch_accept_selector.id) && Selector.class.isAssignableFrom(v.getClass()))
+					asel = (Selector) v;
+				else if (k.equals(CtxBinding.ssch_read_selector.id) && Selector.class.isAssignableFrom(v.getClass()))
+					rsel = (Selector) v;
+				else if (k.equals(CtxBinding.ssch_write_selector.id) && Selector.class.isAssignableFrom(v.getClass()))
+					wsel = (Selector) v;
+				/* -- handlers -- */
+				else if (k.equals(CtxBinding.ssch_accept_handler.id) && SSChanAcceptHandler.class.isAssignableFrom(v.getClass()))
+					ahandler = (NetworkInterface.SSChanAcceptHandler) v;
+				else if (k.equals(CtxBinding.ssch_read_handler.id) && SSChanReadHandler.class.isAssignableFrom(v.getClass()))
+					rhandler = (NetworkInterface.SSChanReadHandler) v;
+				else if (k.equals(CtxBinding.ssch_write_handler.id) && SSChanWriteHandler.class.isAssignableFrom(v.getClass()))
+					whandler = (NetworkInterface.SSChanWriteHandler) v;
+				// else
+				return parent.bind(k, v);
+			}
+
+			@SuppressWarnings("unchecked")
+			@Override final
+			public <V> V get(String k, Class<V> vc) {
+				Assert.notNull(k, "k", IllegalArgumentException.class);
+				Assert.notNull(vc, "vc", IllegalArgumentException.class);
+				/* -- socket channels -- */
+				if(k.equals(CtxBinding.server_socket_chan.id) && vc.isAssignableFrom(ServerSocketChannel.class))
+					return (V) sschan;
+				/* -- selectors -- */
+				else if (k.equals(CtxBinding.ssch_accept_selector.id) && vc.isAssignableFrom(Selector.class))
+					return (V) asel;
+				else if (k.equals(CtxBinding.ssch_read_selector.id) && vc.isAssignableFrom(Selector.class))
+					return (V) rsel;
+				else if (k.equals(CtxBinding.ssch_write_selector.id) && vc.isAssignableFrom(Selector.class))
+					return (V) wsel;
+				/* -- handlers -- */
+				else if (k.equals(CtxBinding.ssch_accept_handler.id) && vc.isAssignableFrom(NetworkInterface.Handler.class))
+					return (V) ahandler;
+				else if (k.equals(CtxBinding.ssch_read_handler.id) && vc.isAssignableFrom(NetworkInterface.Handler.class))
+					return (V) rhandler;
+				else if (k.equals(CtxBinding.ssch_write_handler.id) && vc.isAssignableFrom(NetworkInterface.Handler.class))
+					return (V) whandler;
+				// else
+				return parent.get(k, vc);
+			}
+		};
+	}
+
 	@Override final
-	public NetworkInterface initialize() throws Throwable {
-		String propPort = context.getProperty(Server.Property.DB_SERVER_PORT);
+	public <T> T initialize(Class<T> vt) throws Throwable {
+		String propPort = context.getProperty(Servant.Property.DB_SERVER_PORT);
+
 		
-		ServerSocketChannel sschan = null;
+		log.log(Level.FINER, "NET - initialize SSChans ");
 		try {
 			ssport = Integer.parseInt(propPort);
-			sschan = ServerSocketChannel.open();
 			inetadd = new InetSocketAddress(ssport);
-			sschan.socket().bind(inetadd);
-			context.bind(CtxBinding.server_socket_chan.id(), sschan);
+			
+			final ServerSocketChannel ssch = ServerSocketChannel.open();
+			context.bind(CtxBinding.server_socket_chan.id(), ssch);
+			ssch.socket().bind(inetadd);
 			
 			log.log(Level.FINER, "NET - %s bound to %s", sschan, inetadd);
-			
 		} catch (Throwable e) {
 			log.error("sschan initialize failed", e);
 			throw e;
 		} 
+
 		
-		Selector asel = null;
+		log.log(Level.FINER, "NET - initialize sschan-op-selectors ");
 		try {
-			asel = Selector.open();
-			context.bind(CtxBinding.accept_selector.id(), asel);
-			
-			Selector selReader = Selector.open();
-			context.bind(CtxBinding.read_selector.id(), selReader);
-			
-			Selector selWriter = Selector.open();
-			context.bind(CtxBinding.write_selector.id(), selWriter);
+			context.bind(CtxBinding.ssch_accept_selector.id(), Selector.open());
+			context.bind(CtxBinding.ssch_read_selector.id(), Selector.open());
+			context.bind(CtxBinding.ssch_write_selector.id(), Selector.open());
 
 		} catch (Exception e) {
 			log.error("selectors init failed", e);
 			throw e;
 		}
-		
-		AcceptHandler acceptHandler = null;
+
+
+		log.log(Level.FINER, "NET - initialize sschan-op-handlers ");
 		try {
-			acceptHandler = new AcceptHandler();
-			acceptHandler.setContext(context);
-			acceptHandler.initialize();
-			context.bind(CtxBinding.accept_handler.id(), acceptHandler);
-			log.log(Level.FINEST, "NET - handler %s initialized and bound", acceptHandler);
-			
-			RequestHandler requestHandler = new RequestHandler();
-			requestHandler.setContext(context);
-			requestHandler.initialize();
-			context.bind(CtxBinding.request_handler.id(), requestHandler);
-			log.log(Level.FINEST, "NET - handler %s initialized and bound", requestHandler);
-			
-			ResponseHandler responseHandler = new ResponseHandler();
-			responseHandler.setContext(context);
-			responseHandler.initialize();
-			context.bind(CtxBinding.response_handler.id(), responseHandler);
-			log.log(Level.FINEST, "NET - handler %s initialized and bound", responseHandler);
-			
+			final class sschh_spec {
+				final Servant.Component handler;
+				final CtxBinding binding;
+				sschh_spec (Servant.Component h, CtxBinding binding){
+					this.binding = binding;
+					this.handler = (Handler.Base) h;
+				}
+			}
+			final sschh_spec hspecs[] = {
+					new sschh_spec(new SSChanAcceptHandler(), CtxBinding.ssch_accept_handler),
+					new sschh_spec(new SSChanReadHandler(), CtxBinding.ssch_read_handler),
+					new sschh_spec(new SSChanWriteHandler(), CtxBinding.ssch_write_handler)
+				};
+			for(sschh_spec hspec : hspecs){
+				hspec.handler.setContext(context);
+				hspec.handler.initialize(hspec.handler.getClass());
+				context.bind(hspec.binding.id(), hspec.handler);
+				log.log(Level.FINEST, "NET - handler %s initialized and bound", hspec.handler);
+			}
 		} catch (Throwable e) {
 			log.error("handlers init failed", e);
 		}
+		log.log(Level.FINER, "NET - handler %s initialized and bound", whandler);
 
+		
 		try {
-			sschan = context.get(CtxBinding.server_socket_chan.id(), ServerSocketChannel.class);
-			sschan.configureBlocking(false); 
-			sschan.register(asel, SelectionKey.OP_ACCEPT, acceptHandler);
+			final ServerSocketChannel ssch = context.get(CtxBinding.server_socket_chan.id(), ServerSocketChannel.class);
+			ssch.configureBlocking(false); 
+			ssch.register(asel, SelectionKey.OP_ACCEPT, ahandler);
 		} catch (Exception e) {
 			log.error("sschan registration (OP_ACCEPT) failed", e);
 		}
-		return this;
+		return (T) this;
 	}
+
+	// ------------------------------------------------------------------------
+	// component execution
+	// ------------------------------------------------------------------------
 	
 	@Override final
 	public void run() {
-		/* check selectors in the following order
-		 * - write
-		 * - read
-		 * - accept
-		 */
-		Selector csel = context.get(CtxBinding.accept_selector.id(), Selector.class);
-		Selector rsel = context.get(CtxBinding.read_selector.id(), Selector.class);
-		Selector wsel = context.get(CtxBinding.write_selector.id(), Selector.class);
-		Selector[] selectors = {wsel, rsel, csel}; // order is meaningful
-		
+		final Selector asel = context.get(CtxBinding.ssch_accept_selector.id(), Selector.class);
+		final Selector rsel = context.get(CtxBinding.ssch_read_selector.id(), Selector.class);
+		final Selector wsel = context.get(CtxBinding.ssch_write_selector.id(), Selector.class);
+		final Selector[] selectors = {
+				Assert.notNull(wsel, "wsel", IllegalArgumentException.class), 
+				Assert.notNull(rsel, "rsel", IllegalArgumentException.class), 
+				Assert.notNull(asel, "asel", IllegalArgumentException.class) 
+		}; // order is meaningful
+
+		// REVU: should be constrained e.g. take n selection from A then ... etc.
+		// where n is a small-ish number
 		for(;;) {
 			boolean idling = true;
 			for(Selector s : selectors){
 				log.log(Level.FINER, "check selector %s", s);
 				try {
-					if(s.selectNow() == 0){
+					if(s.selectNow() == 0)
 						continue;
-					}
+					
 					Set<SelectionKey> selections = s.selectedKeys();
 					for(SelectionKey k : selections){
 						log.log(Level.FINEST, "selected: %s %s", k, k.attachment());
@@ -156,7 +249,8 @@ class NetworkInterface extends Server.Component.Base<NetworkInterface> implement
 					log.error("in select loop", e);
 				}
 			}
-			
+
+			// REVU: this needs a better solution to the idle.
 			try {
 				if(idling){
 					Thread.sleep(1000);
@@ -167,77 +261,59 @@ class NetworkInterface extends Server.Component.Base<NetworkInterface> implement
 			}
 		}
 	}
-	
-	// ------------------------------------------------------------------------
-	// Context bindings
-	// ------------------------------------------------------------------------
-	enum CtxBinding {
-		server_socket_chan,
-		accept_handler,
-		request_handler,
-		response_handler,
-		accept_selector, 
-		read_selector, 
-		write_selector;
-		private final String id;
-		CtxBinding () {
-			this.id = this.name().toLowerCase().replace('_', '.');
-		}
-		public String id() { return id; }
-	}
-	
+
 	// ------------------------------------------------------------------------
 	// Network OPs handler
 	// ------------------------------------------------------------------------
 	private interface Handler{
 		void handle(SelectionKey key) throws Exception;
-		abstract static class Base<T> extends Server.Component.Base<T> implements Handler {}
+		abstract static class Base extends Servant.Component.Base implements NetworkInterface.Handler {}
 	}
-	
+
 	// ------------------------------------------------------------------------
 	// NetworkInterface.AcceptHandler
 	// ------------------------------------------------------------------------
-	private static class AcceptHandler extends Handler.Base<AcceptHandler> {
+	private static class SSChanAcceptHandler extends NetworkInterface.Handler.Base {
 		@Override final
 		public void handle(final SelectionKey key) throws Exception {
 			Assert.notNull(key, "key", IllegalArgumentException.class);
 			Assert.isTrue(key.isAcceptable(), "key should be acceptable", IllegalArgumentException.class);
-			
+
 			ServerSocketChannel chan = null;
 			chan = context.get(CtxBinding.server_socket_chan.id(), ServerSocketChannel.class);
-			
+
 			SocketChannel sch = chan.accept();
 			log.log(Level.FINE, "Accepted connection - %s", sch);
-			
-			Selector rsel = context.get(CtxBinding.read_selector.id(), Selector.class);
-			RequestHandler reqhdlr = context.get(CtxBinding.request_handler.id(), RequestHandler.class);
+
+			Selector rsel = context.get(CtxBinding.ssch_read_selector.id(), Selector.class);
+			SSChanReadHandler reqhdlr = context.get(CtxBinding.ssch_read_handler.id(), SSChanReadHandler.class);
 			sch.configureBlocking(false);
 			sch.register(rsel, SelectionKey.OP_READ, reqhdlr);
 			log.log(Level.FINEST, "%s registered with %s OP_READs to be handled by - %s", sch, rsel, reqhdlr);
-			
+
 			log.warning("did not register for OP_WRITE -- IMPLEMENT WRITE HANDLER ..");
 		}
 	}
-	
+
 	// ------------------------------------------------------------------------
 	// NetworkInterface.RequestHandler
 	// ------------------------------------------------------------------------
-	private static class RequestHandler extends Handler.Base<RequestHandler>{
+	private static class SSChanReadHandler extends NetworkInterface.Handler.Base{
 		@Override final
 		public void handle(SelectionKey key) throws Exception {
 			Assert.notNull(key, "key", IllegalArgumentException.class);
 			Assert.isTrue(key.isReadable(), "key should be readable", IllegalArgumentException.class);
-			
+
 			key.channel().close(); // TEMP
 			log.warning("closed socket channel -- IMPLEMENT READ HANDLER ..");
 			throw new RuntimeException("Handler#handle NOT IMPLEMENTED");
 		}
 	}
-	
+
 	// ------------------------------------------------------------------------
 	// NetworkInterface.ResponseHandler
 	// ------------------------------------------------------------------------
-	private static class ResponseHandler extends Handler.Base<ResponseHandler> {
+	private static class SSChanWriteHandler extends NetworkInterface.Handler.Base {
 		@Override final
 		public void handle(SelectionKey key) throws Exception {
 			throw new RuntimeException("Handler#handle NOT IMPLEMENTED");

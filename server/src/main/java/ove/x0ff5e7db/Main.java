@@ -77,26 +77,26 @@ public class Main {
 		}
 		
 		// configuration 
-		Server.Configuration conf = null;
+		Servant.Configuration conf = null;
 		try {
 			String cfname = null;
 			if((cfname = clargs.get(Option.conf)) == null) { 
 				cfname = DEFAULT_CONF_PATH; // REVU: should be in jar 
 			}
-			conf = Server.Configuration.Load(cfname);
+			conf = Servant.Configuration.Load(cfname);
 		} catch (Exception e) {
 			e.printStackTrace();
 			exit(-2, "startup failed - configuration file load");
 		}
 
 		// executive context
-		final Server.Fault[] fault = new Server.Fault [1];
-		Server.Context context = newServerContext(Thread.currentThread(), conf, fault);
+		final Servant.Fault[] fault = new Servant.Fault [1];
+		Servant.Context context = newServerContext(Thread.currentThread(), conf, fault);
 
 		// instantiate and configure the server
-		Server server = null;
+		Servant server = null;
 		try {
-			server = new Server(context);
+			server = new Servant(context);
 		} catch (Exception e) {
 			e.printStackTrace();
 			exit(-3, "startup failed - server config");
@@ -138,17 +138,17 @@ public class Main {
 	private static final boolean handleFault() {
 		return false;
 	}
-	private static final Server.Context newServerContext(final Thread owner, final Server.Configuration config, final Server.Fault[] fault) {
-		return new Server.Context() {
+	private static final Servant.Context newServerContext(final Thread owner, final Servant.Configuration config, final Servant.Fault[] fault) {
+		return new Servant.Context() {
 			final Map<String, Object> map = new HashMap<String, Object>();
 			@Override final 
-			public void onError(Server.Fault f) {
+			public void onError(Servant.Fault f) {
 				log.error("onError: %s", f.toString());
 				fault[0] = f;
 				owner.interrupt();
 			}
 			@Override final 
-			public String getProperty(Server.Property prop) {
+			public String getProperty(Servant.Property prop) {
 				return config.get(prop);
 			}
 			@SuppressWarnings("unchecked")

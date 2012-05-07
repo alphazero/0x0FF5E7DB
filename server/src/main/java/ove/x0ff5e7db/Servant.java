@@ -41,7 +41,7 @@ import ove.x0ff5e7db.util.Log;
 /**
  * @author alphazero
  */
-public class Server implements Runnable {
+public class Servant implements Runnable {
 	
 	// ------------------------------------------------------------------------
 	// properties
@@ -52,46 +52,40 @@ public class Server implements Runnable {
 	private NetworkInterface netcomp;
 	
 	// ------------------------------------------------------------------------
-	// api
+	// constructor
 	// ------------------------------------------------------------------------
-	public Server(Context context) throws IllegalArgumentException {
+	public Servant(Context context) throws IllegalArgumentException {
 		Assert.notNull(context, "context", IllegalArgumentException.class);
-		this.context = new Server.Context.Tree(context);
+		this.context = new Servant.Context.Tree(context);
 		
 		configure();
 	}
-	private Server.Fault configure() {
+	
+	// ------------------------------------------------------------------------
+	// configuration
+	// ------------------------------------------------------------------------
+	private Servant.Fault configure() {
 		try {
 			String levelstr = context.getProperty(Property.LOG_LEVEL);
 			Log.setLoggerLevel(log, levelstr);
 		} catch (Exception e) {
 			String err = "configure log level error";
 			log.error(err, e);
-			return new Server.Fault(this, e, err);
+			return new Servant.Fault(this, e, err);
 		}
 		
 		return  null;
 	}
 
+	// ------------------------------------------------------------------------
+	// component life-cycle - run
+	// ------------------------------------------------------------------------
 	/**
-	 * Server general architecture:
+	 * general architecture:
 	 * 
-	 * - networking thread:s
-	 * 		- accept connections
-	 * 		- process client requests => db thread
-	 * 		- process server responses <= db thread
-	 * 
-	 * 	- fs thread (possibly):
-	 * 		- deal with file IO (not entirely sure)
-	 * 
-	 * - db thread: 
-	 * 		- process db requests
-	 * 
-	 * - background tasks thread:
-	 * 		- possibly handle non-db related request e.g. metrics, info, etc.
-	 * 		- garbage collections
-	 * 
-	 * 
+	 * - networking comp
+	 * - other comps -- TODO TBD
+	 * - house-keeping -- TODO
 	 */
 	@Override final public void run() {
 		Thread.yield();	// REVU: stinko
@@ -100,61 +94,93 @@ public class Server implements Runnable {
 		final String id = String.format("{%s:%d}", thread.getName(), thread.getId());
 		log.log(Level.FINEST, "server thread id is %s - started ...", id);
 
-		// assemble system and initialize 
+		// assemble 
 		try {
 			Fault fault = null;
-			if((fault = initializeComponents()) != null) {
-				log.error("failed initialize components - %s", fault);
+			if((fault = assemble()) != null) {
+				log.error("servant faulted in assembling - %s", fault);
 				context.onError(fault);
 				return;
 			}
-			log.log(Level.FINER, "server components assembled and initialized");
+			log.log(Level.FINER, "servant assembly");
 		} catch (Throwable rte) {
 			log.error("unexpected fault on component intialization", rte);
 			context.onError(new Fault(this, rte, id));
 			return;
 		}
 		
-		// bootup -- TODO: 
-		
-		// get busy
+		// bootup
 		try {
-			ExecutorService netex = Executors.newSingleThreadExecutor();
-			netex.execute(netcomp);
-			log.log(Level.FINEST, "network interface executor %s started", netex);
-		} catch (Exception e) {
-			log.error("fault on network interface executor intialization", e);
-			context.onError(new Fault(this, e, id));
+			Fault fault = null;
+			if((fault = bootup()) != null) {
+				log.error("servant faulted in preparing - %s", fault);
+				context.onError(fault);
+				return;
+			}
+			log.log(Level.FINER, "servant availability");
+		} catch (Throwable rte) {
+			log.error("unexpected error while booting up", rte);
+			context.onError(new Fault(this, rte, id));
+			return;
+		}
+		
+		// go fishing 
+		try {
+			Fault fault = null;
+			if((fault = serve()) != null) {
+				log.error("servant faulted in service - %s", fault);
+				context.onError(fault);
+				return;
+			}
+			log.log(Level.FINER, "servant in service");
+		} catch (Throwable rte) {
+			log.error("unexpected error while serving", rte);
+			context.onError(new Fault(this, rte, id));
 			return;
 		}
 		
 		// REVU: likely want to block on a latch and wait for interrupts on error
 	}
 	// ------------------------------------------------------------------------
-	// internal ops
+	// internal life-cycle tasks
 	// ------------------------------------------------------------------------
-	protected final Server.Fault initializeComponents() {
+	protected final Servant.Fault assemble() {
 
 		// 1 - netcomp
 		netcomp = new NetworkInterface(context);
 		try {
-			netcomp.initialize();
+			netcomp.initialize(NetworkInterface.class);
 			context.bind(CtxBinding.network_interface.id(), netcomp);
 			log.log(Level.FINEST, "network interface %s initialized and bound",  netcomp);
 		} catch (Throwable e) {
 			String err = "failed to initialize netcomp";
 			log.error(err, e);
-			return new Server.Fault(this, e, err);
+			return new Servant.Fault(this, e, err);
 		}
-
 		// TODO: fscomp
 		// TODO: cachecomp
-		
 		return null;
 	}
-	protected final void bootup() {
+	
+	private Servant.Fault bootup() {
 		// TODO: Server#bootup -- May 5, 2012
+		// REVU: this can just be a sequenced list of comps to start in order
 		throw new RuntimeException("Server#bootup is not implemented!");
+	}
+	
+	private Servant.Fault serve() {
+		// TODO: Server#bootup -- May 5, 2012
+		// REVU: this can just be a sequenced list of comps to start in order
+		try {
+			ExecutorService netex = Executors.newSingleThreadExecutor();
+			netex.execute(netcomp);
+			log.log(Level.FINEST, "network interface executor %s started", netex);
+		} catch (Exception e) {
+			log.error("fault on network interface executor intialization", e);
+			return new Fault(this, e, "servant");
+		}
+
+		return null;
 	}
 	
 	// ========================================================================
@@ -180,26 +206,27 @@ public class Server implements Runnable {
 	/** context for server and its components  */
 	public interface Context {
 		/** @return the value of the prop {@link Property} */
-		String getProperty(Server.Property prop);
+		String getProperty(Servant.Property prop);
 		/** notify context owner of {@link Fault} */
 		void onError(Fault fault);
 		<V extends Object> V bind(String k, V v);
 		<V extends Object> V get(String k, Class<V> vc);
 		
 		/** A hierarchical context */
+		@Deprecated // TODO: remove at some point - low priority
 		public static final class Tree implements Context {
 			final Map<String, Object> map = new HashMap<String, Object>();
 			private final Context parent;
-			public Tree(Server.Context parent){
+			public Tree(Servant.Context parent){
 				this.parent = parent;
 			}
 			@Override final 
-			public void onError(Server.Fault f) {
+			public void onError(Servant.Fault f) {
 				log.error("onError: %s", f.toString());
 				parent.onError(f);
 			}
 			@Override final 
-			public String getProperty(Server.Property prop) {
+			public String getProperty(Servant.Property prop) {
 				return parent.getProperty(prop);
 			}
 			@SuppressWarnings("unchecked")
@@ -222,20 +249,23 @@ public class Server implements Runnable {
 	// ------------------------------------------------------------------------
 	// Server.Component
 	// ------------------------------------------------------------------------
-	public interface Component<T> {
+	
+	// REVU: this generic param is fairly obtrusive and ultimately useless
+	// TODO: get rid of it
+	public interface Component {
 		/**  @param context for the component */
 		void setContext(Context context);
 		/**  @return self */
-		T initialize() throws Throwable;
+		<T> T initialize(Class<T> vc) throws Throwable;
 		/** support base for specialized comps. */
-		static class Base<T> implements Component<T> {
+		static class Base implements Component {
 			protected Context context;
 			@Override final public void setContext(Context context) {
 				this.context = context;
 			}
 			@SuppressWarnings("unchecked")
 			@Override
-			public T initialize() throws Throwable { return (T) this;/* nop convenience impl */ }
+			public <T> T initialize(Class<T> vt) throws Throwable { return (T) this;/* nop convenience impl */ }
 		}
 	}
 	
@@ -247,8 +277,8 @@ public class Server implements Runnable {
 	public static final class Fault {
 		final public Throwable t;
 		final public String info;
-		final public Server source;
-		Fault(Server source, Throwable t, String info) {
+		final public Servant source;
+		Fault(Servant source, Throwable t, String info) {
 			this.t = t;
 			this.info = info;
 			this.source = source;
@@ -285,7 +315,7 @@ public class Server implements Runnable {
 		/** */
 		private final Properties userprops;
 		
-		public String get(Server.Property prop) throws IllegalArgumentException{ 
+		public String get(Servant.Property prop) throws IllegalArgumentException{ 
 			Assert.notNull(prop, "key", IllegalArgumentException.class);
 			return userprops.getProperty(prop.key(), prop.defval()); 
 		}
