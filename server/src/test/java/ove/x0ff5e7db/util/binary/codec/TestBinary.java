@@ -20,26 +20,19 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package ove.x0ff5e7db;
+package ove.x0ff5e7db.util.binary.codec;
 
-import java.util.Random;
-
-import ove.x0ff5e7db.util.Log;
-import ove.x0ff5e7db.util.Log.Logger;
+import ove.x0ff5e7db.util.binary.Codec;
 
 /**
+ * @author joubin (alphazero@sensesay.net)
  */
-public class TestBase {
-	// ------------------------------------------------------------------------
-	// properties
-	// ------------------------------------------------------------------------
-	protected static final Logger logger = Log.getLogger("test-run");
-	protected static final Random rand = new Random(System.currentTimeMillis());
-	
-	// ------------------------------------------------------------------------
-	// utilities - benchmarks
-	// ------------------------------------------------------------------------
-	protected static final long comprpcycle(long iters, long delta){
-		return (long) ((float)delta/iters);
+public class TestBinary {
+	void TestAddhoc() {
+		byte[] b = new byte[12];
+		int off = 1;
+		long v = Integer.MAX_VALUE;
+		
+		off += Codec.Binary.BigEndian.writeLong(v, b, off);
 	}
 }
