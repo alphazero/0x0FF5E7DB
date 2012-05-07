@@ -23,7 +23,8 @@
 package ove.x0FF5E7DB;
 
 import java.util.logging.Level;
-import ove.x0FF5E3DB.util.Log;
+
+import ove.x0ff5e7db.util.Log;
 
 public interface Specification {
 	public static final class Version {
@@ -38,5 +39,5 @@ public interface Specification {
 		}
 	}
 
-	public static final Log.Logger logger = Log.getLogger("0FF5E3DB", true).setLevel(Level.FINEST);
+	public static final Log.Logger logger = Log.getLogger("0FF5E7DB", true).setLevel(Level.FINEST);
 }

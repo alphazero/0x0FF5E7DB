@@ -20,15 +20,15 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package ove.x0FF5E7DB;
+package ove.x0ff5e7db;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
 
-import ove.x0FF5E3DB.util.Assert;
-import ove.x0FF5E3DB.util.Log;
-import ove.x0FF5E7DB.Server.Configuration;
+import ove.x0ff5e7db.Server.Configuration;
+import ove.x0ff5e7db.util.Assert;
+import ove.x0ff5e7db.util.Log;
 
 /**
  * @author alphazero

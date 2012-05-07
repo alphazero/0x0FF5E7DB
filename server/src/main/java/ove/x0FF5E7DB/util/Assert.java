@@ -20,12 +20,12 @@
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package ove.x0FF5E3DB.util;
+package ove.x0FF5E7DB.util;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.Formatter;
 
-import ove.x0FF5E7DB.Specification;
+import ove.x0ff5e7db.Specification;
 
 
 /**

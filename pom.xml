@@ -1,14 +1,14 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"> <modelVersion>4.0.0</modelVersion> 
 
-	<name>0X0FF5E3DB-Project</name> 
+	<name>0X0FF5E7DB-Project</name> 
 
-	<groupId>0X0FF5E3DB</groupId> 
-	<artifactId>0X0FF5E3DB-project</artifactId> 
+	<groupId>0X0ff5e7db</groupId> 
+	<artifactId>0X0ff5e7db-project</artifactId> 
 	<version>alpha.0-SNAPSHOT</version> 
 	<packaging>pom</packaging> 
 
-	<url>http://github.com/alphazero/0x0FF5E3DB</url>
-	<description>0X0FF5E3DB Project POM.</description> 
+	<url>http://github.com/alphazero/0x0FF5E7DB</url>
+	<description>0X0FF5E7DB Project POM.</description> 
     
 	<!-- ============================================================= -->
 	<!-- INFORMATION                                                   -->
@@ -49,7 +49,7 @@
 	<!-- ============================================================= -->
 
 	<modules>
-		<!-- x0FF5E3DB-server -->
+		<!-- x0FF5E7DB-server -->
 		<module>server</module>
 	</modules>
 	<!-- ============================================================= -->

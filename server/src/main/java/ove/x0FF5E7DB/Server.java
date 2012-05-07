@@ -34,8 +34,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
-import ove.x0FF5E3DB.util.Assert;
-import ove.x0FF5E3DB.util.Log;
+import ove.x0ff5e7db.util.Assert;
+import ove.x0ff5e7db.util.Log;
 
 
 /**
